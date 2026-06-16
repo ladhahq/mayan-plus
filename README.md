@@ -89,10 +89,6 @@ The engine's `_canvasTransform.invertTransformPoint()` converts viewport mouse c
 - **Mechanics**: Combo system, fire/power mode (combo ≥ 3), walls (instant death), trap blocks
 - **Scenes**: Home → Game → Revive/Settle dialogs
 
-## License
-
-This is a reverse-engineered port of abandoned software for preservation purposes. All original game code and assets remain the property of their respective owners (BadDog Game / LayaBox).
-
 ## Credits
 
 - Original game by BadDog Game (http://www.baddog-game.com)
