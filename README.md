@@ -1,5 +1,7 @@
 # Mayan Jump 2 — Web Port
 
+**▶ [Play now](https://mayan-web.vercel.app)**
+
 Web port of **Mayan Jump 2**, a 3D endless jumper game extracted from the last public Android APK (2018) by BadDog Game. The game was unlisted from the Play Store and development stopped. This port preserves the original game logic and assets, running directly in a browser using WebGL.
 
 ## Quick Start
