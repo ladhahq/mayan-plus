@@ -86,93 +86,19 @@
 
     <!--
         Load order matters:
-        1. conch-shim.js  — stub out native APIs before engine loads
-        2. laya.js        — LayaAir engine (2.6MB, unminified)
-        3. utils.min.js   — game utilities (CommonUtils, MathUtils, etc.)
-        4. jump3d.max.js  — game logic (52KB), auto-starts with new LayaAir3D()
+        1. conch-shim.ts   — stub out native APIs before engine loads (Vite transforms .ts → .js)
+        2. laya.js         — LayaAir engine (2.6MB, unminified)
+        3. fix-aspect-ratio.ts — patch engine internals BEFORE game inits
+        4. utils.min.js    — game utilities (CommonUtils, MathUtils, etc.)
+        5. jump3d.max.js   — game logic (52KB), auto-starts with new LayaAir3D()
+        6. main.ts          — module entry: boot sequence + CSS (deferred)
     -->
-    <script type="module" src="/src/main.ts"></script>
-    <script src="conch-shim.js"></script>
+    <script src="/src/conch-shim.ts"></script>
     <script src="laya.js" loader='laya'></script>
-    <script src="fix-aspect-ratio.js"></script>
+    <script src="/src/fix-aspect-ratio.ts"></script>
     <script src="utils.min.js" loader='laya'></script>
     <script src="jump3d.max.js" loader='laya'></script>
 
-    <script>
-        console.log('[web] Mayan Jump 2 — web boot complete, waiting for engine init...');
-
-        // Keep body sized correctly as mobile browser chrome shows/hides.
-        // dvh works on modern browsers but we also set explicit px values
-        // based on actual innerWidth/innerHeight for cross-browser consistency.
-        function updateBodySize() {
-            var vw = window.innerWidth;
-            var vh = window.innerHeight;
-            var w = Math.min(vw, vh * 750 / 1334);
-            var h = Math.min(vh, vw * 1334 / 750);
-            document.body.style.width  = w + 'px';
-            document.body.style.height = h + 'px';
-        }
-        updateBodySize();
-        window.addEventListener('resize', updateBodySize);
-        // Also update on orientation change for mobile
-        window.addEventListener('orientationchange', function() {
-            setTimeout(updateBodySize, 100);
-        });
-
-        (function checkCanvas() {
-            var canvas = document.querySelector('canvas');
-            if (canvas && canvas.width > 0) {
-                var cr = canvas.getBoundingClientRect();
-                var br = document.body.getBoundingClientRect();
-                console.log('[web] Canvas ready — internal=' + canvas.width + 'x' + canvas.height +
-                            ' viewport=' + window.innerWidth + 'x' + window.innerHeight);
-                console.log('[web]   canvas rect: left=' + Math.round(cr.left) + ' top=' + Math.round(cr.top) +
-                            ' w=' + Math.round(cr.width) + ' h=' + Math.round(cr.height));
-
-                var loading = document.getElementById('loading');
-                if (loading) {
-                    loading.style.opacity = '0';
-                    loading.style.transition = 'opacity 0.3s';
-                    setTimeout(function() { loading.remove(); }, 300);
-                }
-            } else {
-                setTimeout(checkCanvas, 50);
-            }
-        })();
-
-        // Fix Chrome's autoplay policy — aggressively resume audio
-        function unlockAllAudio() {
-            // Resume ALL AudioContexts on the page
-            if (window.Laya && window.Laya.SoundManager) {
-                var sm = window.Laya.SoundManager;
-                // Try direct _audioContext
-                if (sm._audioContext && sm._audioContext.state === 'suspended') {
-                    sm._audioContext.resume();
-                }
-                // Also try the WebAudioSound internal context
-                if (sm._ctx && sm._ctx.state === 'suspended') {
-                    sm._ctx.resume();
-                }
-                console.log('[web] Audio unlock attempted, AudioContext state:',
-                    sm._audioContext ? sm._audioContext.state : 'none');
-            }
-        }
-
-        // Click/touch to unlock audio
-        document.addEventListener('click', unlockAllAudio, { once: true });
-        document.addEventListener('touchstart', unlockAllAudio, { once: true });
-        // Also try keydown (some users navigate with keyboard)
-        document.addEventListener('keydown', unlockAllAudio, { once: true });
-
-        window.onerror = function(msg, url, line, col, err) {
-            console.error('[web] Global error:', msg, 'at', url + ':' + line);
-            var loading = document.getElementById('loading');
-            if (loading) {
-                loading.innerHTML = '<div style="color:#f44;font-size:14px;">⚠️ Error loading game<br><small>' +
-                    String(msg).substring(0, 80) + '</small></div>';
-                loading.style.color = '#f44';
-            }
-        };
-    </script>
+    <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

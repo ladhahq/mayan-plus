@@ -47,6 +47,9 @@ declare namespace Laya {
     static _mainCanvas: { source: HTMLCanvasElement }
   }
 
+  // Engine aliases module classes onto the Laya namespace
+  const SoundManager: typeof laya.media.SoundManager
+
   /* -- PlatformClass (android bridge, shimmed) --------------- */
   class PlatformClass {
     static createClass(className: string): {
@@ -429,7 +432,9 @@ interface ConchConfig {
 
 interface Window {
   conchConfig: ConchConfig
-  PlatformClass: typeof Laya.PlatformClass
+  PlatformClass: {
+    createClass(className: string): { call(...args: any[]): void }
+  }
   fs_exists(path: string): boolean
   fs_mkdir(path: string): void
   fs_writeFileSync(path: string, data: any): void
