@@ -22,12 +22,14 @@ declare var GameSDK: {
 /* ─── EventCenter (singleton) ──────────────────────────────── */
 
 interface EventCenter {
-  on(event: string, caller: any, listener: (...args: any[]) => void): void
+  on(event: string, caller: any, listener: (...args: any[]) => void, once?: boolean): void
+  off(event: string, caller: any, listener: (...args: any[]) => void): void
   event(event: string, data?: any): void
 }
 
 declare namespace EventCenter {
-  const instance: () => EventCenter
+  // __getset getter on prototype → static-like access
+  const instance: EventCenter
   const COIN_VIDEO_BACK: string
   const VIDEO_READY: string
   const _instance: EventCenter | null

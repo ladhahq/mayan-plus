@@ -17,9 +17,9 @@ declare namespace Laya {
   // The game aliases it as __class = Laya.class internally
   function getset(isStatic: 0 | 1, proto: any, name: string, getter: () => any, setter?: (v: any) => void): void
   function __newvec<T>(ctor: new (...args: any[]) => T): T
-  function __typeof(this: any, interfaceName: string): boolean
-  function imps(proto: any, interfaceName: string): void
-  function interface(name: string, members: Record<string, string>): void
+  function __typeof(obj: any, interfaceName: string): boolean
+  function imps(proto: any, interfaceName: string | Record<string, boolean>): void
+  function interface(name: string, members?: Record<string, string>): void
   function superSet(proto: any, name: string, value: any): void
 
   /* -- Core singletons -------------------------------------- */
@@ -40,6 +40,7 @@ declare namespace Laya {
     static window: Window & typeof globalThis
     static document: Document
     static onAndroid: boolean
+    static onMobile: boolean
     static canvas: HTMLCanvasElement | null
   }
 
@@ -69,6 +70,7 @@ declare namespace laya.utils {
     static window: Window
     static document: Document
     static onAndroid: boolean
+    static onMobile: boolean
     static canvas: HTMLCanvasElement | null
   }
 
@@ -97,10 +99,13 @@ declare namespace laya.events {
   }
 
   class EventDispatcher {
-    on(type: string, caller: any, listener: (...args: any[]) => void): void
+    on(type: string, caller: any, listener: (...args: any[]) => void, once?: boolean): void
     off(type: string, caller: any, listener: (...args: any[]) => void): void
     event(type: string, data?: any): void
     _set$instance: any
+    static _instance: any
+    static _$SET_instance: any
+    static prototype: EventDispatcher
   }
 
   class MouseManager {
@@ -110,7 +115,7 @@ declare namespace laya.events {
 
 declare namespace laya.net {
   class Loader {
-    create(url: string, config: any, complete?: laya.utils.Handler): void
+    create(tasks: any[], complete?: laya.utils.Handler): void
     load(tasks: any[], complete?: laya.utils.Handler): void
     getRes<T = any>(url: string): T
   }
@@ -122,7 +127,7 @@ declare namespace laya.net {
   }
 
   class ResourceVersion {
-    static enable(configUrl: string, errorHandler?: laya.utils.Handler): void
+    static enable(configUrl: string, errorHandler?: laya.utils.Handler, version?: number): void
   }
 }
 
@@ -177,6 +182,7 @@ declare namespace laya.ui {
     width: number
     height: number
     mouseEnabled: boolean
+    mouseThrough: boolean
     visible: boolean
     top: number
     bottom: number
@@ -186,12 +192,22 @@ declare namespace laya.ui {
     centerY: number
     anchorX: number
     anchorY: number
+    optimizeFloat: boolean
 
     addChild(child: any): any
+    addChildAt(child: any, index: number): any
+    removeChild(child: any): any
     removeSelf(): void
     destroy(destroyChildren?: boolean): void
+    callLater(fn: (...args: any[]) => void): void
+    on(type: string, caller: any, listener: (...args: any[]) => void, once?: boolean): void
+    off(type: string, caller: any, listener: (...args: any[]) => void): void
     _set$instance: any
+    static _instance: any
+    static _$SET_instance: any
     static prototype: Component
+    static _$get_width: any
+    _$get_width: any
     createChildren(): void
   }
 
@@ -199,6 +215,7 @@ declare namespace laya.ui {
     _childs: any[]
     _set$instance: any
     static prototype: Box
+    static _$SET_instance: any
   }
 
   class View extends Component {
@@ -268,13 +285,19 @@ declare namespace laya.d3.core {
     transform: laya.d3.core.Transform3D
     meshRender: any
     _childs: Sprite3D[]
+    active: boolean
     addChild(child: any): void
+    getChildAt(index: number): Sprite3D
+    getChildByName(name: string): Sprite3D
+    addComponent<T>(c: T): T
+    getComponentByType<T>(t: new (...args: any[]) => T): T
     removeSelf(): void
     destroy(): void
   }
 
   class MeshSprite3D extends Sprite3D {
     meshFilter: any
+    wall: any
   }
 
   class ComponentNode {}
@@ -283,9 +306,12 @@ declare namespace laya.d3.core {
     position: laya.d3.math.Vector3
     rotation: laya.d3.math.Vector3
     rotationEuler: laya.d3.math.Vector3
+    localRotationEuler: laya.d3.math.Vector3
     localPosition: laya.d3.math.Vector3
     scale: laya.d3.math.Vector3
     getForward(v3: laya.d3.math.Vector3): void
+    translate(v: any, isLocal?: boolean): void
+    rotate(v: any, isLocal?: boolean, isRadian?: boolean): void
   }
 
   class Scene {
@@ -321,6 +347,8 @@ declare namespace laya.d3.component {
   class Script {
     owner: laya.d3.core.Sprite3D
     enabled: boolean
+    _load(owner: any): void
+    _update(state: any): void
   }
 
   class Component3D {
@@ -408,14 +436,14 @@ declare class Timer {
 }
 
 declare class LoaderManager {
-  create(url: string, config: any, complete?: laya.utils.Handler): void
+  create(tasks: any[], complete?: laya.utils.Handler): void
   load(tasks: any[], complete?: laya.utils.Handler): void
   getRes<T = any>(url: string): T
 }
 
 /* ─── Type aliases from game IIFE (used as constructor/instanceof) ─ */
 
-declare function __typeof(this: any, interfaceName: string): boolean
+declare function __typeof(obj: any, interfaceName: string): boolean
 
 /* ─── Conch/LayaNative globals (shimmed in conch-shim.js) ──────── */
 
@@ -432,6 +460,7 @@ interface ConchConfig {
 
 interface Window {
   conchConfig: ConchConfig
+  GameSDK: any
   PlatformClass: {
     createClass(className: string): { call(...args: any[]): void }
   }
