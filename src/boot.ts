@@ -45,6 +45,40 @@ import './skin';
   console.log('[boot] Revive enabled — video ready + coins seeded');
 })();
 
+// ── Enable hidden home screen UI elements ────────────────────
+// The original game hid the coin display and welfare (ad) button
+// behind Android ad SDK checks. On web, we show everything.
+(function enableHomeUI() {
+  const HomeView = (Laya as any).__classmap?.['com.bdoggame.HomeView'];
+  if (!HomeView) { setTimeout(enableHomeUI, 200); return; }
+
+  // Override setCoin to also show hidden UI elements
+  const origSetCoin = HomeView.prototype.setCoin;
+  HomeView.prototype.setCoin = function () {
+    origSetCoin.call(this);
+    // Show coin display (hidden via visible:false in UI layout)
+    if (this.labCoins?.parent) this.labCoins.parent.visible = true;
+    // Show welfare button if coins < 5
+    this.btnWelfare.visible = true;
+    this.updateWelfareStatus(
+      parseInt(String(localStorage.getItem('COIN_NUM') || '0'), 10)
+    );
+  };
+
+  // Override welfare click: give a free coin (ads don't work on web)
+  HomeView.prototype.onWelfareClick = function () {
+    let coin = parseInt(String(localStorage.getItem('COIN_NUM') || '0'), 10);
+    if (coin < 5) {
+      coin++;
+      localStorage.setItem('COIN_NUM', String(coin));
+    }
+    this.setCoin();
+    console.log('[boot] Welfare: +1 coin (total: ' + coin + ')');
+  };
+
+  console.log('[boot] Home screen UI elements enabled');
+})();
+
 console.log('[boot] Mayan Jump 2 — web boot complete, waiting for engine init...');
 
 // ── Body sizing ────────────────────────────────────────────
