@@ -10,7 +10,7 @@
       ]
     },
     {
-      "source": "/(.*\\.(png|jpg|wav|atlas|ani|ttf|json|avif|lm|ls|lt|webp|lmat|lani))",
+      "source": "/(.*)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
       ]
