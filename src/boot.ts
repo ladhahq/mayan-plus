@@ -6,6 +6,7 @@
 
 import './skin';
 import { initRewards } from './rewards';
+import { openPicker } from './character-picker';
 initRewards();
 
 // ── Enable revive mechanic ─────────────────────────────────
@@ -70,12 +71,47 @@ initRewards();
   const HomeView = (Laya as any).__classmap?.['com.bdoggame.HomeView'];
   if (!HomeView) { setTimeout(enableHomeUI, 200); return; }
 
+  // Add a skin picker button on the right side, mirroring the coin counter
+  let _skinBtnAdded = false;
+  const addSkinBtn = function (this: any) {
+    if (_skinBtnAdded) return;
+    _skinBtnAdded = true;
+
+    // Background panel (matches coin counter style: toolsbg on the left)
+    const bg: any = new laya.ui.Image();
+    bg.skin = 'home/toolsbg.png';
+    bg.width = 140;
+    bg.height = 54;
+    bg.right = 20;
+    bg.top = 50;
+    (this as any).addChild(bg);
+
+    // Label inside the panel — matches coin counter style (fontSize 40, Arial)
+    const label: any = new laya.ui.Label();
+    label.text = 'Theme';
+    label.fontSize = 40;
+    label.font = 'Arial';
+    label.color = '#ffffff';
+    label.align = 'center';
+    label.valign = 'middle';
+    label.width = 140;
+    label.height = 54;
+    label.right = 20;
+    label.top = 50;
+    (this as any).addChild(label);
+
+    // Make the whole area clickable via the background
+    bg.on('click', this, () => openPicker());
+    console.log('[boot] Skin picker button added');
+  };
+
   // Override setCoin to show hidden elements + remove "/5" cap label
   HomeView.prototype.setCoin = function () {
     const coin = parseInt(String(localStorage.getItem('COIN_NUM') || '0'), 10);
     this.labCoins.text = String(coin);
     if (this.labCoins?.parent) this.labCoins.parent.visible = true;
     this.btnWelfare.visible = true;
+    addSkinBtn.call(this);
   };
 
   // Raise welfare cap from 5 to 99
