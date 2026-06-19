@@ -94,14 +94,20 @@ function applyToMesh(mesh: any): void {
   const texturePath = SKINS[currentSkin];
   if (!texturePath) return;
 
-  // Default skin: the .lh loader already created a perfect Texture2D.
-  if (texturePath === SKINS.default) return;
-
   const material = mesh.meshRender?.sharedMaterial;
   if (!material) return;
 
+  // Save the engine's original Texture2D on first encounter so we can
+  // restore it when the user switches back to "default".
+  if (!textureCache[SKINS.default] && material.albedoTexture) {
+    textureCache[SKINS.default] = material.albedoTexture;
+    console.log('[skin] Cached original Texture2D for default skin');
+  }
+
   const tex = textureCache[texturePath];
-  if (!tex) return; // not loaded yet, retry next scan
+  if (!tex) return; // variant not loaded yet, retry next scan
+
+  if (material.albedoTexture === tex) return; // already applied
 
   material.albedoTexture = tex;
   console.log(`[skin] Applied "${currentSkin}"`);

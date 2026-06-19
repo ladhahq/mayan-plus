@@ -100,6 +100,49 @@ Tested on iPhone 16 (iOS 18) and desktop (macOS).
 
 **Known issue:** Chrome iOS and Firefox iOS don't fill the viewport width, leaving thin black bars on the sides. This is due to how these browsers report `innerWidth` vs the actual visual viewport width. Safari, Opera, and Arc Search handle this correctly. Pull requests welcome.
 
+## Custom Skins
+
+The character texture is a **3-column sprite sheet** animated by shifting the UV offset. You can add new skins by dropping a correctly formatted PNG into the texture folder and registering it in `src/skin.ts`.
+
+### Technical Spec
+
+| Property | Value |
+|----------|-------|
+| **Canvas size** | 512 × 128 pixels |
+| **Format** | PNG, RGBA (with alpha) |
+| **Layout** | 3 equal columns, left to right |
+| **Column width** | ~171 pixels each |
+| **Column 0 (idle)** | Normal/neutral pose |
+| **Column 1 (action)** | Angry/determined pose |
+| **Column 2 (hurt)** | Knocked-out/dizzy pose |
+| **Centering** | Each sprite centered vertically within its column |
+| **Background** | Transparent |
+
+The engine's material uses `tilingOffset: [0.333, 1, 0, 0]` — at any moment only one column is visible. The animation system slides the U-offset to switch between states. Make sure no sprite bleeds into the next column.
+
+### Adding a New Skin
+
+1. **Create the sprite sheet** following the spec above, e.g. `role-cat.png`
+2. **Drop it in** `LayaScene_Role/Assets/Texture/`
+3. **Register it** in `src/skin.ts`:
+
+```ts
+const SKINS: Record<string, string> = {
+  default: 'LayaScene_Role/Assets/Texture/role.png',
+  bunny1:  'LayaScene_Role/Assets/Texture/role-b1.png',
+  bunny2:  'LayaScene_Role/Assets/Texture/role-b2.png',
+  cat:     'LayaScene_Role/Assets/Texture/role-cat.png', // ← add this
+};
+```
+
+4. **Refresh** — the new skin is available. In the console (dev only):
+
+```js
+setSkin('cat')
+```
+
+The chosen skin persists in `localStorage` under `character_skin`. A proper UI selector is planned for production.
+
 ## Known Limitations
 
 - **Background music**: Not present in the APK assets (likely handled by the Android native layer)
