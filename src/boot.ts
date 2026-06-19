@@ -31,10 +31,26 @@ initRewards();
   const patchReviveLayout = () => {
     const ReviveDialog = (Laya as any).__classmap?.['com.bdoggame.ReviveDialog'];
     if (!ReviveDialog) { setTimeout(patchReviveLayout, 200); return; }
+    const REVIVE_COST = 3;
+
+    // Override onCoinClick: spend 3 coins instead of 1
+    ReviveDialog.prototype.onCoinClick = function () {
+      let coin = parseInt(String(localStorage.getItem('COIN_NUM') || '0'), 10);
+      if (coin >= REVIVE_COST) {
+        coin -= REVIVE_COST;
+        localStorage.setItem('COIN_NUM', String(coin));
+        GameSDK.revive();
+        this.close();
+      }
+    };
+
     const origSetCoin = ReviveDialog.prototype.setCoin;
     ReviveDialog.prototype.setCoin = function () {
       origSetCoin.call(this);
       this.btnCoin.visible = true;
+      const coin = parseInt(String(localStorage.getItem('COIN_NUM') || '0'), 10);
+      this.btnCoin.disabled = coin < REVIVE_COST;
+      this.labCoin.text = String(coin);
       // Reposition: both 258px wide, canvas 750px. Center the pair.
       // video @ 105, coin @ 387 (gap = 24px)
       this.btnVideo.x = 105;

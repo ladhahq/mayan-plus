@@ -19,13 +19,8 @@ const SCORE_MILESTONES: [number, number][] = [
   [2000, 5],
 ];
 
-// Dev-only: quick test milestones so we don't have to grind to 100
-if (import.meta.env.DEV) {
-  SCORE_MILESTONES.unshift([40, 5], [30, 3], [20, 2], [10, 1]);
-  SCORE_MILESTONES.sort((a, b) => a[0] - b[0]); // keep sorted
-}
-
 const COMBO_TIERS: [number, number][] = [
+  [2, 1],
   [5, 1],
   [10, 2],
   [15, 3],
