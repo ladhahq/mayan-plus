@@ -136,6 +136,49 @@ setSkin('cat')
 
 The skin persists in `localStorage` under `character_skin`. Hot-swappable during gameplay. A proper UI selector is planned.
 
+## Platform & Environment Textures
+
+The game's cylinder body, platforms, and walls all sample from two texture atlases. Each 3D mesh maps to a specific pixel region via baked UV coordinates. The UV-to-pixel mapping was reverse-engineered from the binary `.lm` mesh files (see `tools/analyze-mesh.py`).
+
+### Scene_Mid.png (1024×1024) — Normal Mode
+
+The default material applied to all meshes during normal gameplay.
+
+| Mesh | Pixel Region | Size | Game Object |
+|------|-------------|------|-------------|
+| SceneStatic | X:654–1015, Y:0–1023 | 362×1024 | Cylinder body (vertical strip, right ~35%) |
+| NormalCube | X:173–612, Y:8–575 | 440×568 | Normal platform blocks |
+| DamageCube1 | X:21–622, Y:8–763 | 602×756 | Trap blocks |
+| DamageCube2 | X:10–622, Y:631–1015 | 613×385 | Wall obstacles |
+
+### Burning.png (256×256) — Combo Fire Mode
+
+Applied to platforms and walls when combo ≥ 3. The cylinder body keeps using Scene_Mid.png.
+
+| Mesh | Pixel Region | Size | Game Object |
+|------|-------------|------|-------------|
+| NormalCube | X:43–153, Y:2–143 | 111×142 | Normal platform (burning) |
+| DamageCube1 | X:5–155, Y:2–190 | 151×189 | Trap block (burning) |
+| DamageCube2 | X:2–155, Y:157–253 | 154×97 | Wall obstacle (burning) |
+
+### Creating Platform Textures
+
+Use `tools/extract-texture.py` to isolate any region:
+
+```bash
+# Extract cylinder body from Scene_Mid.png
+python tools/extract-texture.py Scene_Mid.png --x0 654 --x1 1015 --y0 0 --y1 1023 --bleed 4
+
+# Extract all regions at once
+python tools/extract-texture.py Scene_Mid.png --auto --output-dir out/
+```
+
+The mesh UVs are stored in binary `.lm` files. Use `tools/analyze-mesh.py` to inspect any mesh:
+
+```bash
+python tools/analyze-mesh.py LayaScene_JumpDown/Assets/model/
+```
+
 ## Browser Compatibility
 
 Tested on iPhone 16 (iOS 18) and desktop (macOS).
