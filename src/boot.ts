@@ -5,6 +5,8 @@
  */
 
 import './skin';
+import { initRewards } from './rewards';
+initRewards();
 
 // ── Enable revive mechanic ─────────────────────────────────
 // The original game required the Android ad SDK to call
@@ -52,28 +54,26 @@ import './skin';
   const HomeView = (Laya as any).__classmap?.['com.bdoggame.HomeView'];
   if (!HomeView) { setTimeout(enableHomeUI, 200); return; }
 
-  // Override setCoin to also show hidden UI elements
-  const origSetCoin = HomeView.prototype.setCoin;
+  // Override setCoin to show hidden elements + remove "/5" cap label
   HomeView.prototype.setCoin = function () {
-    origSetCoin.call(this);
-    // Show coin display (hidden via visible:false in UI layout)
+    const coin = parseInt(String(localStorage.getItem('COIN_NUM') || '0'), 10);
+    this.labCoins.text = String(coin);
     if (this.labCoins?.parent) this.labCoins.parent.visible = true;
-    // Show welfare button if coins < 5
     this.btnWelfare.visible = true;
-    this.updateWelfareStatus(
-      parseInt(String(localStorage.getItem('COIN_NUM') || '0'), 10)
-    );
   };
 
-  // Override welfare click: give a free coin (ads don't work on web)
-  HomeView.prototype.onWelfareClick = function () {
-    let coin = parseInt(String(localStorage.getItem('COIN_NUM') || '0'), 10);
-    if (coin < 5) {
-      coin++;
-      localStorage.setItem('COIN_NUM', String(coin));
+  // Raise welfare cap from 5 to 99
+  HomeView.prototype.updateWelfareStatus = function (coin: number) {
+    if (GameSDK.getVideoReady()) {
+      this.btnWelfare.visible = coin < 99;
+    } else {
+      this.btnWelfare.visible = false;
     }
-    this.setCoin();
-    console.log('[boot] Welfare: +1 coin (total: ' + coin + ')');
+  };
+
+  // Override welfare click: no-op on web (ads don't work)
+  HomeView.prototype.onWelfareClick = function () {
+    console.log('[boot] Welfare clicked — no-op on web');
   };
 
   console.log('[boot] Home screen UI elements enabled');
