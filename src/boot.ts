@@ -7,6 +7,7 @@
 import './skin';
 import { initRewards } from './rewards';
 import { openPicker } from './character-picker';
+import { openLeaderboard } from './leaderboard';
 initRewards();
 
 // ── Enable revive mechanic ─────────────────────────────────
@@ -19,6 +20,7 @@ initRewards();
     return;
   }
   GameSDK.mVideoReady = true;
+  GameSDK.onRank = openLeaderboard;
   try {
     if (localStorage.getItem('COIN_NUM') == null) {
       localStorage.setItem('COIN_NUM', '3');
