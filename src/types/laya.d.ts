@@ -22,6 +22,9 @@ declare namespace Laya {
   function interface(name: string, members?: Record<string, string>): void
   function superSet(proto: any, name: string, value: any): void
 
+  // Internal class registry: fullName → constructor
+  const __classmap: Record<string, any>
+
   /* -- Core singletons -------------------------------------- */
   const stage: laya.display.Stage
   const timer: Timer

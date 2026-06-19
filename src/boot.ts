@@ -4,6 +4,8 @@
  * already executed by the time this runs.
  */
 
+import './skin';
+
 console.log('[boot] Mayan Jump 2 — web boot complete, waiting for engine init...');
 
 // ── Body sizing ────────────────────────────────────────────
