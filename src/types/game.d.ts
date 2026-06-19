@@ -9,6 +9,7 @@
 /* ─── GameSDK ──────────────────────────────────────────────── */
 
 declare var GameSDK: {
+  mVideoReady: boolean
   addGameOver(fn: () => void): void
   removeGameOver(fn: () => void): void
   init(): void
@@ -16,6 +17,10 @@ declare var GameSDK: {
   getVideoReady(): boolean
   onCoinVideo(): void
   onRank(): void
+  onReviveVideo(): void
+  onHideBanner(): void
+  onShowBanner(): void
+  revive(): void
   _callbacks: Record<string, (result: any) => void>
 }
 

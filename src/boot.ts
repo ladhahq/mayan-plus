@@ -6,6 +6,45 @@
 
 import './skin';
 
+// ── Enable revive mechanic ─────────────────────────────────
+// The original game required the Android ad SDK to call
+// eventVideoReady(true) before the revive dialog would appear.
+// On web, we enable it unconditionally and seed 3 free coins.
+(function enableRevive() {
+  if (typeof GameSDK === 'undefined') {
+    setTimeout(enableRevive, 100);
+    return;
+  }
+  GameSDK.mVideoReady = true;
+  try {
+    if (localStorage.getItem('COIN_NUM') == null) {
+      localStorage.setItem('COIN_NUM', '3');
+      console.log('[boot] Seeded 3 revive coins');
+    }
+  } catch { /* private browsing */ }
+
+  // The original ReviveDialog layout assumed only one button would be visible
+  // (video OR coin, never both). Both are 258×257px with only 175px gap → overlap.
+  // Reposition for side-by-side layout: video left, coin right, 24px gap.
+  const patchReviveLayout = () => {
+    const ReviveDialog = (Laya as any).__classmap?.['com.bdoggame.ReviveDialog'];
+    if (!ReviveDialog) { setTimeout(patchReviveLayout, 200); return; }
+    const origSetCoin = ReviveDialog.prototype.setCoin;
+    ReviveDialog.prototype.setCoin = function () {
+      origSetCoin.call(this);
+      this.btnCoin.visible = true;
+      // Reposition: both 258px wide, canvas 750px. Center the pair.
+      // video @ 105, coin @ 387 (gap = 24px)
+      this.btnVideo.x = 105;
+      this.btnCoin.x = 387;
+    };
+    console.log('[boot] Revive button layout patched');
+  };
+  patchReviveLayout();
+
+  console.log('[boot] Revive enabled — video ready + coins seeded');
+})();
+
 console.log('[boot] Mayan Jump 2 — web boot complete, waiting for engine init...');
 
 // ── Body sizing ────────────────────────────────────────────
