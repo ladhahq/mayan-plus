@@ -131,7 +131,7 @@ initRewards();
   console.log('[boot] Home screen UI elements enabled');
 })();
 
-console.log('[boot] Mayan Jump 2 — web boot complete, waiting for engine init...');
+console.log('[boot] Mayan Plus — web boot complete, waiting for engine init...');
 
 // ── Body sizing ────────────────────────────────────────────
 // Keep body sized correctly as mobile browser chrome shows/hides.
