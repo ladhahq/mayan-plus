@@ -69,33 +69,30 @@ function showDialog(skins: string[]): void {
 
   skins.forEach((skin, i) => {
     const x = startX + i * (previewW + gap);
+    const isActive = skin === current;
+
+    // Active preview: slightly larger + golden label
+    const scale = isActive ? 1.08 : 1.0;
+    const w = Math.round(previewW * scale);
+    const h = Math.round(120 * scale);
+    const offsetX = (previewW - w) / 2;
+    const offsetY = (120 - h) / 2;
 
     // Preview image
     const img: any = new laya.ui.Image();
     img.skin = getPreviewPath(skin);
-    img.width = previewW;
-    img.height = 120;
-    img.x = x;
-    img.y = previewY;
+    img.width = w;
+    img.height = h;
+    img.x = x + offsetX;
+    img.y = previewY + offsetY;
     img.mouseEnabled = true;
     dialog.addChild(img);
 
-    // Selection highlight border
-    if (skin === current) {
-      const border: any = new laya.ui.Image();
-      border.skin = 'comp.clip_selectBox.png';
-      border.width = previewW + 12;
-      border.height = 130;
-      border.x = x - 6;
-      border.y = previewY - 5;
-      dialog.addChild(border);
-    }
-
-    // Label
+    // Label — gold/bold for active, dim for inactive
     const label: any = new laya.ui.Label();
-    label.text = SKIN_LABELS[skin] || skin;
-    label.fontSize = 28;
-    label.color = '#ffffff';
+    label.text = isActive ? `★ ${SKIN_LABELS[skin] || skin}` : SKIN_LABELS[skin] || skin;
+    label.fontSize = isActive ? 32 : 28;
+    label.color = isActive ? '#FFD700' : '#aaaaaa';
     label.align = 'center';
     label.width = previewW;
     label.y = previewY + 130;
