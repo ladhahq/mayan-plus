@@ -135,6 +135,7 @@ export function openLeaderboard(): void {
 
       // One-time push-up: if this account has never migrated local coins to the server
       // and the server has no coins yet, push local coins up.
+      // Also migrate the local high score if the scoreboard is empty for this user.
       if (!u.user_metadata?.coins_synced) {
         if (!coinRow) {
           const localCoins = parseInt(String(localStorage.getItem('COIN_NUM') || '0'), 10);
@@ -149,6 +150,25 @@ export function openLeaderboard(): void {
             }
           }
         }
+
+        // Migrate local high score if server has none for this user
+        const localHigh = parseInt(String(localStorage.getItem('HIGH_SCORE') || '0'), 10);
+        if (localHigh > 0) {
+          const { data: existing } = await supabase
+            .from('scores')
+            .select('score')
+            .eq('user_id', u.id)
+            .maybeSingle();
+          if (!existing) {
+            const { error: submitErr } = await supabase.functions.invoke('submit-score', {
+              body: { score: localHigh, combo: 0, coins: coinRow?.balance ?? 0, skin: 'default' },
+            });
+            if (!submitErr) {
+              console.log('[leaderboard] migrated local high score:', localHigh);
+            }
+          }
+        }
+
         await supabase.auth.updateUser({ data: { coins_synced: '1' } });
         console.log('[leaderboard] migration flag set');
       }
