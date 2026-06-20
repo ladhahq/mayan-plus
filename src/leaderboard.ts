@@ -121,13 +121,21 @@ export function openLeaderboard(): void {
       if (profile?.name && profile.name !== 'Player') {
         display = profile.name;
       }
-      // One-time migration: if flag is unset AND server has no coins yet
+      // Always pull server balance — server is the authority.
+      const { data: coinRow } = await supabase
+        .from('coins')
+        .select('balance')
+        .eq('user_id', u.id)
+        .maybeSingle();
+      if (coinRow) {
+        // Server has a balance — overwrite localStorage (sync-down).
+        localStorage.setItem('COIN_NUM', String(coinRow.balance));
+        console.log('[leaderboard] synced localStorage ← server:', coinRow.balance);
+      }
+
+      // One-time push-up: if this account has never migrated local coins to the server
+      // and the server has no coins yet, push local coins up.
       if (!u.user_metadata?.coins_synced) {
-        const { data: coinRow } = await supabase
-          .from('coins')
-          .select('balance')
-          .eq('user_id', u.id)
-          .maybeSingle();
         if (!coinRow) {
           const localCoins = parseInt(String(localStorage.getItem('COIN_NUM') || '0'), 10);
           console.log('[leaderboard] migrating from local:', localCoins);
@@ -136,22 +144,13 @@ export function openLeaderboard(): void {
               'manage-coins',
               { body: { action: 'add', amount: localCoins } },
             );
-            if (!syncErr) {
-              if (result?.balance != null) {
-                localStorage.setItem('COIN_NUM', String(result.balance));
-              }
-              await supabase.auth.updateUser({ data: { coins_synced: '1' } });
-              console.log('[leaderboard] migration complete, flag set');
+            if (!syncErr && result?.balance != null) {
+              localStorage.setItem('COIN_NUM', String(result.balance));
             }
-          } else {
-            await supabase.auth.updateUser({ data: { coins_synced: '1' } });
           }
-        } else {
-          // Server already has coins — sync localStorage and set flag
-          localStorage.setItem('COIN_NUM', String(coinRow.balance));
-          await supabase.auth.updateUser({ data: { coins_synced: '1' } });
-          console.log('[leaderboard] synced localStorage ← server:', coinRow.balance);
         }
+        await supabase.auth.updateUser({ data: { coins_synced: '1' } });
+        console.log('[leaderboard] migration flag set');
       }
 
       // Replay any offline transactions
