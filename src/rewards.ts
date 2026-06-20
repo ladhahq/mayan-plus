@@ -181,7 +181,7 @@ function patchGameView(): void {
     console.log('[rewards] Score setter patched for milestone/coin checks');
   }
 
-  // ── Patch die() for high score ──
+  // ── Patch die() for high score + leaderboard submission ──
   const origDie = _proto.die;
   _proto.die = function (this: any) {
     const r = getRewards(this);
@@ -189,6 +189,11 @@ function patchGameView(): void {
       r.highScoreAwarded = true;
       addCoins(HIGH_SCORE_REWARD, 'new high score', false);
     }
+    // Submit to leaderboard (fire-and-forget)
+    const coins = getCoins();
+    import('./leaderboard').then((m) =>
+      m.submitScoreToLeaderboard(this._score, this.combo, coins),
+    );
     origDie.call(this);
   };
 
