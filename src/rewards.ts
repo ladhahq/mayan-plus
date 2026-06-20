@@ -303,12 +303,13 @@ function patchGameView(): void {
       r.highScoreAwarded = true;
       addCoins(HIGH_SCORE_REWARD, 'new high score', false);
     }
-    // Submit to leaderboard (fire-and-forget)
     const coins = getCoins();
-    import('./leaderboard').then((m) =>
-      m.submitScoreToLeaderboard(this._score, this.combo, coins),
-    );
-    origDie.call(this);
+    origDie.call(this); // open dialog immediately
+    // Submit score, then show rank on the dialog
+    import('./leaderboard').then(async (m) => {
+      const rank = await m.submitScoreToLeaderboard(this._score, this.combo, coins);
+      m.showRankOnDialog(rank);
+    });
   };
 
   // ── Patch gameStart to reset per-game rewards ─────────

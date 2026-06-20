@@ -345,9 +345,9 @@ export async function submitScoreToLeaderboard(
   score: number,
   combo: number,
   coins: number,
-): Promise<void> {
+): Promise<number | null> {
   const { data: session } = await supabase.auth.getSession();
-  if (!session.session) return;
+  if (!session.session) return null;
 
   const body = {
     score: Math.round(score),
@@ -357,13 +357,46 @@ export async function submitScoreToLeaderboard(
   };
 
   try {
-    const { error } = await supabase.functions.invoke('submit-score', { body });
+    const { data, error } = await supabase.functions.invoke('submit-score', { body });
     if (error) throw error;
     _entries = [];
+    return data?.rank ?? null; // rank is always present now (accepted or not)
   } catch {
     // Offline — queue for later
     const q = getScoreQueue();
     q.push({ ...body, ts: Date.now() });
     setScoreQueue(q);
+    return null;
   }
+}
+
+export function showRankOnDialog(rank: number | null): void {
+  if (rank == null) return;
+  const suffix = rank === 1 ? 'st' : rank === 2 ? 'nd' : rank === 3 ? 'rd' : 'th';
+  const text = `#${rank}${suffix} on leaderboard`;
+
+  // Try immediately (settle may already be open), otherwise poll
+  const tryShow = () => {
+    const SettleDialog = (Laya as any).__classmap?.['com.bdoggame.SettleDialog'];
+    const dialog = SettleDialog?._instance;
+    if (!dialog) return false; // not open yet — keep polling
+    const label: any = new laya.ui.Label();
+    label.text = text;
+    label.fontSize = 26;
+    label.color = '#FFD700';
+    label.align = 'center';
+    label.width = 750;
+    label.y = 310;
+    dialog.addChild(label);
+    console.log(`[leaderboard] rank toast: ${text}`);
+    return true;
+  };
+
+  if (tryShow()) return;
+  // Settle not open yet (revive dialog is showing). Poll for it.
+  const interval = setInterval(() => {
+    if (tryShow()) clearInterval(interval);
+  }, 300);
+  // Stop polling after 30 seconds
+  setTimeout(() => clearInterval(interval), 30000);
 }
