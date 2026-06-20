@@ -67,11 +67,11 @@ export function openLeaderboard(): void {
   // Footer — sign-in prompt or signed-in email
   const footer: any = new laya.ui.Label();
   footer.text = 'Sign in to save scores';
-  footer.fontSize = 22;
+  footer.fontSize = 24;
   footer.color = '#60a5fa';
   footer.align = 'center';
   footer.width = 750;
-  footer.y = 1150;
+  footer.y = 1100;
   footer.mouseEnabled = true;
   footer.on('click', null, async () => {
     const { data: session } = await supabase.auth.getSession();
@@ -79,7 +79,7 @@ export function openLeaderboard(): void {
       await supabase.auth.signOut();
       footer.text = 'Sign in to save scores';
       footer.color = '#60a5fa';
-      footer.fontSize = 22;
+      footer.fontSize = 24;
       return;
     }
     // Not signed in → email only
@@ -132,7 +132,7 @@ export function openLeaderboard(): void {
       }
       footer.text = `${display || 'Player'} (tap to sign out)`;
       footer.color = '#4ade80';
-      footer.fontSize = 18;
+      footer.fontSize = 20;
     }
   });
 
