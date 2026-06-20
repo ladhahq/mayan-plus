@@ -165,7 +165,7 @@ export function openLeaderboard(): void {
           }
         }
 
-        // Migrate local high score if server has none for this user
+        // Migrate local high score if it beats the server (or server has none)
         const localHigh = parseInt(String(localStorage.getItem('HIGH_SCORE') || '0'), 10);
         if (localHigh > 0) {
           const { data: existing } = await supabase
@@ -173,7 +173,7 @@ export function openLeaderboard(): void {
             .select('score')
             .eq('user_id', u.id)
             .maybeSingle();
-          if (!existing) {
+          if (!existing || localHigh > existing.score) {
             const { error: submitErr } = await supabase.functions.invoke('submit-score', {
               body: { score: localHigh, combo: 0, coins: coinRow?.balance ?? 0, skin: 'default' },
             });
