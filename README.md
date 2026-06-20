@@ -259,6 +259,23 @@ Tested on iPhone 16 (iOS 18) and desktop (macOS).
 - **Audio autoplay**: Chrome blocks audio until first interaction; engine auto-recovers
 - **Font**: 10MB `layabox.ttf` for Chinese text; English-only users can omit it
 
+## Future Enhancements
+
+Ideas for upcoming features:
+
+| Category | Ideas |
+|----------|-------|
+| **Competitive** | Weekly leaderboard resets, friend challenges (share a link to beat a score) |
+| **Progression** | Unlockable skins (reach 1000 for a gold skin), achievement badges |
+| **Gameplay** | Power-ups (slow-mo, shield, magnet), themed seasons (Halloween blocks, Christmas cylinder) |
+| **Social** | Spectate mode, ghost replay of top scores |
+| **Monetization** | Coin packs (TZS 500 → 30 coins via payment webhook) |
+| **Polish** | PWA install prompt, haptic feedback, sound toggle |
+| **Coin authority** | Migrate coin storage from localStorage to Supabase `coins` table for server-side integrity |
+| **Daily challenge** | Same seed for everyone, one attempt per day — gives a natural "ending" |
+
+The `coins` table in the database exists for this migration. Currently coins are stored in `localStorage` (client-side). When a signed-in player submits a score, their coin balance is recorded. Phase 2 moves the entire economy server-side for tamper-proof balances.
+
 ## Gameplay
 
 - **Resolution**: 750×1334 portrait
