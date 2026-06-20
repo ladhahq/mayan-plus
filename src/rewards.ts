@@ -43,16 +43,63 @@ function getCoins(): number {
 function addCoins(amount: number, reason: string, showToast = true): number {
   let coins = getCoins();
   coins = Math.min(MAX_COINS, coins + amount);
+
+  // localStorage first (instant, no network wait)
   try {
     localStorage.setItem(COIN_KEY, String(coins));
   } catch {
     /* noop */
   }
+
+  // Sync to Supabase in background if signed in (don't block the game loop)
+  import('./supabase').then(async ({ supabase }) => {
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session) return;
+      await supabase.functions.invoke('manage-coins', {
+        body: { action: 'add', amount },
+      });
+    } catch {
+      /* offline — localStorage is authoritative */
+    }
+  });
+
   console.log(
     `[rewards] +${amount} coin${amount > 1 ? 's' : ''} (${reason}) — total: ${coins}`,
   );
   if (showToast) showCoinToast(amount);
   return coins;
+}
+
+export async function spendCoins(amount: number, reason: string): Promise<boolean> {
+  let coins = getCoins();
+  if (coins < amount) return false;
+
+  coins -= amount;
+
+  // Deduct from Supabase if signed in
+  try {
+    const { supabase } = await import('./supabase');
+    const { data: session } = await supabase.auth.getSession();
+    if (session.session) {
+      const { data: result, error } = await supabase.functions.invoke('manage-coins', {
+        body: { action: 'spend', amount },
+      });
+      if (error || result?.error) return false;
+      if (result?.balance != null) coins = result.balance;
+    }
+  } catch {
+    /* offline — use localStorage */
+  }
+
+  try {
+    localStorage.setItem(COIN_KEY, String(coins));
+  } catch {
+    /* noop */
+  }
+
+  console.log(`[rewards] -${amount} coins (${reason}) — total: ${coins}`);
+  return true;
 }
 
 function showCoinToast(amount: number): void {

@@ -36,15 +36,19 @@ initRewards();
     if (!ReviveDialog) { setTimeout(patchReviveLayout, 200); return; }
     const REVIVE_COST = 3;
 
-    // Override onCoinClick: spend 3 coins instead of 1
+    // Override onCoinClick: spend 3 coins via server if signed in
     ReviveDialog.prototype.onCoinClick = function () {
-      let coin = parseInt(String(localStorage.getItem('COIN_NUM') || '0'), 10);
-      if (coin >= REVIVE_COST) {
-        coin -= REVIVE_COST;
-        localStorage.setItem('COIN_NUM', String(coin));
-        GameSDK.revive();
-        this.close();
-      }
+      // Check localStorage first for instant UI feedback
+      const coin = parseInt(String(localStorage.getItem('COIN_NUM') || '0'), 10);
+      if (coin < REVIVE_COST) return;
+      // Defer the actual spend to the spendCoins helper (handles Supabase sync)
+      import('./rewards').then(async ({ spendCoins }) => {
+        const ok = await spendCoins(REVIVE_COST, 'revive');
+        if (ok) {
+          GameSDK.revive();
+          this.close();
+        }
+      });
     };
 
     const origSetCoin = ReviveDialog.prototype.setCoin;
