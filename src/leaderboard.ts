@@ -106,8 +106,8 @@ export function openLeaderboard(): void {
 
   // Update footer if already signed in; prompt for name if new user.
   // supabase.auth.getSession() reads from localStorage — no network request.
-  supabase.auth.getSession().then(async () => {
-    // Force a token refresh — JWT metadata may be stale from direct DB edits
+  supabase.auth.getSession().then(async ({ data: initial }) => {
+    if (!initial.session) return; // not signed in — skip migration / flush
     const { data } = await supabase.auth.refreshSession();
     if (data.session?.user) {
       const u = data.session.user;
