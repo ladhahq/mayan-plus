@@ -2,7 +2,7 @@
 
 **▶ [Play now](https://mayan-plus.vercel.app)**
 
-Enhanced fork of the [Mayan Jump 2 web port](https://github.com/ladhahq/mayan-web) — a 3D endless jumper extracted from the last public Android APK (2018) by BadDog Game. This fork modernizes the codebase with **TypeScript**, **Vite**, and new features like **custom character skins**.
+Enhanced fork of the [Mayan Jump 2 web port](https://github.com/ladhahq/mayan-web) — a 3D endless jumper extracted from the last public Android APK (2018) by BadDog Game. This fork adds **character skins**, **coin rewards**, **revive mechanic**, **leaderboard**, and a modern **TypeScript + Vite** toolchain.
 
 | Desktop | Mobile |
 |---------|--------|
@@ -55,14 +55,24 @@ mayan-plus/
 │
 ├── src/
 │   ├── main.ts                 Module entry
-│   ├── boot.ts                 Body sizing, canvas check, audio unlock
+│   ├── boot.ts                 Body sizing, canvas check, audio unlock,
+│   │                           revive enable, home UI patches
 │   ├── conch-shim.ts           Conch/LayaNative API stubs
 │   ├── fix-aspect-ratio.ts     Engine patches (aspect ratio + mouse coords)
 │   ├── skin.ts                 Character skin system
+│   ├── character-picker.ts     Skin picker dialog
+│   ├── leaderboard.ts          Leaderboard dialog + score submission
+│   ├── rewards.ts              Coin economy (milestones, combos, daily)
+│   ├── supabase.ts             Supabase client
 │   ├── style.css
 │   └── types/
 │       ├── laya.d.ts           LayaAir engine ambient types
 │       └── game.d.ts           Game class ambient types
+│
+├── supabase/
+│   ├── schema.sql              Database tables + RLS + RPC
+│   ├── deno.json               Deno config for Edge Functions
+│   └── functions/submit-score/ Edge Function (score submission)
 │
 ├── game/                       Game textures
 ├── home/                       Home screen textures
@@ -73,6 +83,10 @@ mayan-plus/
 ├── res/atlas/                  Sprite atlases
 ├── Role.ani                    2D player animation
 ├── JumpEffect_*.ani            Jump effect animations
+│
+├── tools/
+│   ├── analyze-mesh.py         Parse .lm binary mesh files
+│   └── extract-texture.py      Crop UV-mapped texture regions
 │
 ├── LayaScene_JumpDown/         Main cylinder scene (3D)
 ├── LayaScene_Role/             Player character + textures + skins
@@ -178,6 +192,48 @@ The mesh UVs are stored in binary `.lm` files. Use `tools/analyze-mesh.py` to in
 ```bash
 python tools/analyze-mesh.py LayaScene_JumpDown/Assets/model/
 ```
+
+## Leaderboard & Auth
+
+The 🏆 button on the home screen opens a live leaderboard (top 20).
+
+- **Sign in** — magic link (email only, no password). Tap "Sign in to save scores" to get started.
+- **Submit scores** — on death, your best score, combo, coins, and skin are submitted via a Supabase Edge Function.
+- **Only your best** — the database keeps your highest score. Lower scores are ignored.
+- **Display name** — prompted once on first sign-in, stored in your profile.
+
+### Supabase Backend
+
+| What | Where |
+|------|-------|
+| Schema | `supabase/schema.sql` — profiles, scores, coins tables with RLS |
+| Edge Function | `supabase/functions/submit-score/` — validates auth, calls `submit_score()` RPC |
+| Client | `src/supabase.ts` + `src/leaderboard.ts` |
+
+### Environment Variables
+
+Set these in Vercel for production:
+
+```
+VITE_SUPABASE_URL=https://<your-project>.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+```
+
+For local dev, copy `.env.example` (or create `.env` — it's gitignored).
+
+## Coins & Rewards
+
+Coins are earned during gameplay and spent on revives.
+
+| Trigger | Reward |
+|---------|--------|
+| Score milestones (250, 500, 750, 1000, 1500, 2000) | +1–5 coins |
+| Combo streaks (2×, 5×, 10×, 15×, 20×) | +1–5 coins |
+| New personal high score | +3 coins |
+| Daily first visit | +2 coins |
+| Welfare button (home screen) | Visual only (no-op) |
+
+Revive costs **3 coins** — one revival per game. Coin cap: 99. Rewards are patched into the game's score setter and fire immediately during gameplay with a staggered coin icon popup.
 
 ## Browser Compatibility
 
