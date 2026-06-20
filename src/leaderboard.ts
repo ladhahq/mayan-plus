@@ -154,8 +154,9 @@ export function openLeaderboard(): void {
         }
       }
 
-      // Replay any offline coin transactions
+      // Replay any offline transactions
       import('./rewards').then(({ flushQueue }) => flushQueue());
+      flushScoreQueue();
 
       // New user — prompt for name once
       if (!display || display === 'Player') {
@@ -294,6 +295,50 @@ function renderRows(dialog: any, entries: LeaderboardEntry[]): void {
   });
 }
 
+// ── Score queue (offline replay) ─────────────────────────────
+
+interface ScoreTx {
+  score: number;
+  combo: number;
+  coins: number;
+  skin: string;
+  ts: number;
+}
+
+const SCORE_QUEUE_KEY = 'SCORE_QUEUE';
+
+function getScoreQueue(): ScoreTx[] {
+  try { return JSON.parse(localStorage.getItem(SCORE_QUEUE_KEY) || '[]'); }
+  catch { return []; }
+}
+
+function setScoreQueue(q: ScoreTx[]): void {
+  try { localStorage.setItem(SCORE_QUEUE_KEY, JSON.stringify(q)); }
+  catch { /* noop */ }
+}
+
+async function flushScoreQueue(): Promise<void> {
+  const queue = getScoreQueue();
+  if (queue.length === 0) return;
+
+  try {
+    for (const tx of queue) {
+      const { error } = await supabase.functions.invoke('submit-score', {
+        body: { score: tx.score, combo: tx.combo, coins: tx.coins, skin: tx.skin },
+      });
+      if (error) {
+        console.warn('[leaderboard] score queue replay failed:', error);
+        return; // stop — retry next leaderboard open
+      }
+    }
+    setScoreQueue([]);
+    _entries = [];
+    console.log(`[leaderboard] replayed ${queue.length} queued scores`);
+  } catch {
+    /* will retry next open */
+  }
+}
+
 // ── Submit score ────────────────────────────────────────────
 
 export async function submitScoreToLeaderboard(
@@ -304,18 +349,21 @@ export async function submitScoreToLeaderboard(
   const { data: session } = await supabase.auth.getSession();
   if (!session.session) return;
 
+  const body = {
+    score: Math.round(score),
+    combo: Math.round(combo),
+    coins: Math.round(coins),
+    skin: getSkin(),
+  };
+
   try {
-    const { error } = await supabase.functions.invoke('submit-score', {
-      body: {
-        score: Math.round(score),
-        combo: Math.round(combo),
-        coins: Math.round(coins),
-        skin: getSkin(),
-      },
-    });
+    const { error } = await supabase.functions.invoke('submit-score', { body });
     if (error) throw error;
-    _entries = []; // refresh on next open
-  } catch (err) {
-    console.warn('[leaderboard] submit failed:', err);
+    _entries = [];
+  } catch {
+    // Offline — queue for later
+    const q = getScoreQueue();
+    q.push({ ...body, ts: Date.now() });
+    setScoreQueue(q);
   }
 }
