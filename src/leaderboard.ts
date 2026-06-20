@@ -119,6 +119,24 @@ export function openLeaderboard(): void {
       if (profile?.name && profile.name !== 'Player') {
         display = profile.name;
       }
+      // Migrate localStorage coins to server on first sign-in
+      const coinsNeedsSync = u.user_metadata?.coins_synced !== '1';
+      if (coinsNeedsSync) {
+        const localCoins = parseInt(String(localStorage.getItem('COIN_NUM') || '0'), 10);
+        if (localCoins > 0) {
+          try {
+            await supabase.functions.invoke('manage-coins', {
+              body: { action: 'add', amount: localCoins },
+            });
+            console.log('[leaderboard] migrated', localCoins, 'coins to server');
+          } catch {
+            /* noop */
+          }
+        }
+        // Mark as synced so we don't re-migrate on every open
+        await supabase.auth.updateUser({ data: { coins_synced: '1' } });
+      }
+
       // New user — prompt for name once
       if (!display || display === 'Player') {
         const name = window.prompt('Welcome! Choose a display name:');

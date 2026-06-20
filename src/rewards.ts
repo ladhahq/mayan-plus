@@ -51,16 +51,21 @@ function addCoins(amount: number, reason: string, showToast = true): number {
     /* noop */
   }
 
-  // Sync to Supabase in background if signed in (don't block the game loop)
+  // Sync to Supabase in background if signed in
   import('./supabase').then(async ({ supabase }) => {
     try {
       const { data: session } = await supabase.auth.getSession();
-      if (!session.session) return;
-      await supabase.functions.invoke('manage-coins', {
+      if (!session.session) {
+        console.log('[rewards] coin sync skipped — not signed in');
+        return;
+      }
+      const { data: result, error } = await supabase.functions.invoke('manage-coins', {
         body: { action: 'add', amount },
       });
-    } catch {
-      /* offline — localStorage is authoritative */
+      if (error) console.warn('[rewards] coin sync error:', error);
+      else console.log('[rewards] coin synced to server:', result);
+    } catch (e) {
+      console.warn('[rewards] coin sync failed:', e);
     }
   });
 
