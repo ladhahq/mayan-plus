@@ -89,7 +89,7 @@ export function openLeaderboard(): void {
     footer.color = '#fff';
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: window.location.href },
+      options: { emailRedirectTo: window.location.origin },
     });
     if (error) {
       footer.text = error.message?.includes('rate') ? 'Too fast — wait a moment' : 'Error — try again';
