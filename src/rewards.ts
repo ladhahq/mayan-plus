@@ -5,7 +5,64 @@
 
 const COIN_KEY = 'COIN_NUM';
 const DAILY_KEY = 'reward_last_daily';
+const QUEUE_KEY = 'COIN_QUEUE';
 const MAX_COINS = 99;
+
+interface CoinTx {
+  action: 'add' | 'spend';
+  amount: number;
+  reason: string;
+  ts: number;
+}
+
+function getQueue(): CoinTx[] {
+  try {
+    return JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]');
+  } catch {
+    return [];
+  }
+}
+
+function setQueue(q: CoinTx[]): void {
+  try {
+    localStorage.setItem(QUEUE_KEY, JSON.stringify(q));
+  } catch { /* noop */ }
+}
+
+async function flushQueue(): Promise<void> {
+  const queue = getQueue();
+  if (queue.length === 0) return;
+
+  try {
+    const { supabase } = await import('./supabase');
+    const { data: session } = await supabase.auth.getSession();
+    if (!session.session) return; // still offline
+
+    for (const tx of queue) {
+      const { error } = await supabase.functions.invoke('manage-coins', {
+        body: { action: tx.action, amount: tx.amount },
+      });
+      if (error) {
+        console.warn('[rewards] queue replay failed, will retry:', error);
+        return; // stop — remaining items will retry next time
+      }
+    }
+    // All replayed — clear queue + sync final balance to localStorage
+    setQueue([]);
+    const { data: row } = await supabase
+      .from('coins')
+      .select('balance')
+      .maybeSingle();
+    if (row?.balance != null) {
+      localStorage.setItem(COIN_KEY, String(row.balance));
+    }
+    console.log(`[rewards] replayed ${queue.length} offline transactions`);
+  } catch {
+    /* will retry next leaderboard open */
+  }
+}
+
+export { flushQueue };
 
 // ── Reward definitions ──────────────────────────────────────
 
@@ -51,21 +108,24 @@ function addCoins(amount: number, reason: string, showToast = true): number {
     /* noop */
   }
 
-  // Sync to Supabase in background if signed in
+  // Sync to Supabase in background. If offline, queue for later replay.
   import('./supabase').then(async ({ supabase }) => {
     try {
       const { data: session } = await supabase.auth.getSession();
-      if (!session.session) {
-        console.log('[rewards] coin sync skipped — not signed in');
-        return;
-      }
-      const { data: result, error } = await supabase.functions.invoke('manage-coins', {
+      if (!session.session) return;
+      const { error } = await supabase.functions.invoke('manage-coins', {
         body: { action: 'add', amount },
       });
-      if (error) console.warn('[rewards] coin sync error:', error);
-      else console.log('[rewards] coin synced to server:', result);
-    } catch (e) {
-      console.warn('[rewards] coin sync failed:', e);
+      if (error) {
+        console.warn('[rewards] coin sync error, queuing:', error);
+        const q = getQueue();
+        q.push({ action: 'add', amount, reason, ts: Date.now() });
+        setQueue(q);
+      }
+    } catch {
+      const q = getQueue();
+      q.push({ action: 'add', amount, reason, ts: Date.now() });
+      setQueue(q);
     }
   });
 
@@ -82,7 +142,7 @@ export async function spendCoins(amount: number, reason: string): Promise<boolea
 
   coins -= amount;
 
-  // Deduct from Supabase if signed in
+  // Deduct from Supabase if signed in. Queue if offline.
   try {
     const { supabase } = await import('./supabase');
     const { data: session } = await supabase.auth.getSession();
@@ -94,7 +154,9 @@ export async function spendCoins(amount: number, reason: string): Promise<boolea
       if (result?.balance != null) coins = result.balance;
     }
   } catch {
-    /* offline — use localStorage */
+    const q = getQueue();
+    q.push({ action: 'spend', amount, reason, ts: Date.now() });
+    setQueue(q);
   }
 
   try {

@@ -60,7 +60,7 @@ Deno.serve(async (req: Request) => {
 
     if (fetchErr && fetchErr.code !== 'PGRST116') throw fetchErr;
 
-    let balance = row?.balance ?? 3;
+    let balance = row?.balance ?? 0;
 
     if (action === 'add') {
       balance = Math.min(9999, balance + amount);
