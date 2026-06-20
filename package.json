@@ -7,13 +7,23 @@
     "dev": "vite",
     "build": "tsc && vite build && npm run copy-assets",
     "copy-assets": "cp -r laya.js utils.min.js jump3d.max.js version.json unpack.json Role.ani JumpEffect_*.ani LayaScene_* game home settle sound font res dist/",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "cap:sync": "pnpm build && npx cap sync",
+    "cap:ios": "pnpm build && npx cap sync ios && npx cap open ios",
+    "cap:android": "pnpm build && npx cap sync android && npx cap open android",
+    "cap:dev": "CAPACITOR_DEV=true CAPACITOR_DEV_URL=http://$(ipconfig getifaddr en0 2>/dev/null || echo 'localhost'):5173 vite --host"
   },
   "devDependencies": {
+    "@types/node": "^26.0.0",
     "typescript": "~6.0.2",
     "vite": "^8.0.12"
   },
   "dependencies": {
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/cli": "^8.4.1",
+    "@capacitor/core": "^8.4.1",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/ios": "^8.4.1",
     "@supabase/supabase-js": "^2.108.2"
   }
 }
