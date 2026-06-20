@@ -133,6 +133,20 @@ export function openLeaderboard(): void {
         console.log('[leaderboard] synced localStorage ← server:', coinRow.balance);
       }
 
+      // Always pull server high score — overwrite if higher than local.
+      const { data: scoreRow } = await supabase
+        .from('scores')
+        .select('score')
+        .eq('user_id', u.id)
+        .maybeSingle();
+      if (scoreRow) {
+        const localHigh = parseInt(String(localStorage.getItem('HIGH_SCORE') || '0'), 10);
+        if (scoreRow.score > localHigh) {
+          localStorage.setItem('HIGH_SCORE', String(scoreRow.score));
+          console.log('[leaderboard] synced HIGH_SCORE ← server:', scoreRow.score);
+        }
+      }
+
       // One-time push-up: if this account has never migrated local coins to the server
       // and the server has no coins yet, push local coins up.
       // Also migrate the local high score if the scoreboard is empty for this user.
