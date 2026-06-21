@@ -8,6 +8,7 @@ import './skin';
 import { initRewards } from './rewards';
 import { openPicker } from './character-picker';
 import { openLeaderboard } from './leaderboard';
+import { impact } from './haptics';
 initRewards();
 
 // ── Enable revive mechanic ─────────────────────────────────
@@ -45,6 +46,7 @@ initRewards();
       import('./rewards').then(async ({ spendCoins }) => {
         const ok = await spendCoins(REVIVE_COST, 'revive');
         if (ok) {
+          impact('heavy');
           GameSDK.revive();
           this.close();
         }
@@ -135,6 +137,19 @@ initRewards();
   };
 
   console.log('[boot] Home screen UI elements enabled');
+})();
+
+// ── Jump haptic ──────────────────────────────────────────────
+// Patch Player.prototype.jump to fire a light haptic on every jump.
+(function patchJumpHaptic() {
+  const Player = (Laya as any).__classmap?.['com.bdoggame.Player'];
+  if (!Player) { setTimeout(patchJumpHaptic, 200); return; }
+  const origJump = Player.prototype.jump;
+  Player.prototype.jump = function () {
+    impact('light');
+    origJump.call(this);
+  };
+  console.log('[boot] Jump haptic patched');
 })();
 
 console.log('[boot] Mayan Plus — web boot complete, waiting for engine init...');

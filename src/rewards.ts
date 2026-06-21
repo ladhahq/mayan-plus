@@ -62,6 +62,8 @@ async function flushQueue(): Promise<void> {
   }
 }
 
+import { impact } from './haptics';
+
 export { flushQueue };
 
 // ── Reward definitions ──────────────────────────────────────
@@ -280,6 +282,7 @@ function patchGameView(): void {
           if (s >= threshold && !r.scoreMilestones.has(threshold)) {
             r.scoreMilestones.add(threshold);
             addCoins(reward, `score ${threshold}`);
+            impact('medium');
           }
         }
         const combo = this.combo;
@@ -287,6 +290,7 @@ function patchGameView(): void {
           if (combo >= tier && !r.comboTiers.has(tier)) {
             r.comboTiers.add(tier);
             addCoins(reward, `${tier}x combo`);
+            impact(tier >= 15 ? 'heavy' : 'medium');
           }
         }
       },
@@ -298,6 +302,7 @@ function patchGameView(): void {
   // ── Patch die() for high score + leaderboard submission ──
   const origDie = _proto.die;
   _proto.die = function (this: any) {
+    impact('heavy');
     const r = getRewards(this);
     if (this._score >= this.mHighScore && !r.highScoreAwarded) {
       r.highScoreAwarded = true;
